@@ -82,6 +82,27 @@ export const systemMetricsApi = {
   async updateFocusModeSettings(settings: FocusModeSettings): Promise<string> {
     return invoke<string>('update_focus_mode_settings', { settings });
   },
+
+  /**
+   * Get Maintenance Config
+   */
+  async getMaintenanceConfig(): Promise<any> {
+    return invoke<any>('get_maintenance_config');
+  },
+
+  /**
+   * Update Maintenance Config
+   */
+  async updateMaintenanceConfig(config: any): Promise<string> {
+    return invoke<string>('update_maintenance_config', { config });
+  },
+
+  /**
+   * Get Maintenance Logs
+   */
+  async getMaintenanceLogs(): Promise<any[]> {
+    return invoke<any[]>('get_maintenance_logs');
+  },
 };
 
 /**
