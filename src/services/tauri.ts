@@ -26,6 +26,8 @@ import type {
   OptimizationHistoryEntry,
   OptimizationCompletedEvent,
   NotificationEvent,
+  FocusModeSettings,
+  FocusModeStatus,
 } from '../types';
 
 /**
@@ -51,6 +53,34 @@ export const systemMetricsApi = {
    */
   async killProcess(pid: number, force: boolean = false): Promise<ToggleResult> {
     return invoke<ToggleResult>('kill_process', { pid, force });
+  },
+
+  /**
+   * Toggle Focus Mode
+   */
+  async toggleFocusMode(enable: boolean): Promise<string> {
+    return invoke<string>('toggle_focus_mode', { enable });
+  },
+
+  /**
+   * Get Focus Mode Status
+   */
+  async getFocusModeStatus(): Promise<FocusModeStatus> {
+    return invoke<FocusModeStatus>('get_focus_mode_status');
+  },
+
+  /**
+   * Get Focus Mode Settings
+   */
+  async getFocusModeSettings(): Promise<FocusModeSettings> {
+    return invoke<FocusModeSettings>('get_focus_mode_settings');
+  },
+
+  /**
+   * Update Focus Mode Settings
+   */
+  async updateFocusModeSettings(settings: FocusModeSettings): Promise<string> {
+    return invoke<string>('update_focus_mode_settings', { settings });
   },
 };
 

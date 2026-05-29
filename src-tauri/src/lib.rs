@@ -9,6 +9,7 @@ struct AppState {
     metrics_collector: Mutex<MetricsCollector>,
     boot_optimizer: Mutex<BootOptimizer>,
     ai_engine: Mutex<AISuggestionsEngine>,
+    focus_mode_manager: Mutex<system::FocusModeManager>,
 }
 
 // System Metrics Commands
@@ -304,6 +305,36 @@ fn train_local_model(include_historical_data: bool) -> Result<serde_json::Value,
     }))
 }
 
+// Focus Mode Commands
+#[tauri::command]
+fn toggle_focus_mode(state: State<AppState>, enable: bool) -> Result<String, String> {
+    let mut manager = state.focus_mode_manager.lock()
+        .map_err(|e| format!("Failed to lock focus mode manager: {}", e))?;
+    manager.toggle(enable)
+}
+
+#[tauri::command]
+fn get_focus_mode_status(state: State<AppState>) -> Result<system::FocusModeStatus, String> {
+    let manager = state.focus_mode_manager.lock()
+        .map_err(|e| format!("Failed to lock focus mode manager: {}", e))?;
+    Ok(manager.get_status())
+}
+
+#[tauri::command]
+fn get_focus_mode_settings(state: State<AppState>) -> Result<system::FocusModeSettings, String> {
+    let manager = state.focus_mode_manager.lock()
+        .map_err(|e| format!("Failed to lock focus mode manager: {}", e))?;
+    Ok(manager.get_settings())
+}
+
+#[tauri::command]
+fn update_focus_mode_settings(state: State<AppState>, settings: system::FocusModeSettings) -> Result<String, String> {
+    let mut manager = state.focus_mode_manager.lock()
+        .map_err(|e| format!("Failed to lock focus mode manager: {}", e))?;
+    manager.update_settings(settings);
+    Ok("Settings updated successfully".to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -312,6 +343,7 @@ pub fn run() {
             metrics_collector: Mutex::new(MetricsCollector::new()),
             boot_optimizer: Mutex::new(BootOptimizer::new()),
             ai_engine: Mutex::new(AISuggestionsEngine::new()),
+            focus_mode_manager: Mutex::new(system::FocusModeManager::new()),
         })
         .invoke_handler(tauri::generate_handler![
             get_system_metrics,
@@ -336,6 +368,10 @@ pub fn run() {
             set_api_key,
             get_optimization_history,
             train_local_model,
+            toggle_focus_mode,
+            get_focus_mode_status,
+            get_focus_mode_settings,
+            update_focus_mode_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

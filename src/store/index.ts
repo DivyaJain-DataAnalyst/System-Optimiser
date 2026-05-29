@@ -6,6 +6,8 @@ import type {
   OptimizationSuggestion,
   StartupProgram,
   BootTimeInfo,
+  FocusModeSettings,
+  FocusModeStatus,
 } from '../types';
 
 interface AppStore {
@@ -23,6 +25,8 @@ interface AppStore {
   
   // Settings
   settings: Settings | null;
+  focusModeStatus: FocusModeStatus | null;
+  focusModeSettings: FocusModeSettings | null;
   
   // Loading States
   isLoadingMetrics: boolean;
@@ -38,6 +42,8 @@ interface AppStore {
   setStartupPrograms: (programs: StartupProgram[]) => void;
   setOptimizations: (optimizations: OptimizationSuggestion[]) => void;
   setSettings: (settings: Settings) => void;
+  setFocusModeStatus: (status: FocusModeStatus) => void;
+  setFocusModeSettings: (settings: FocusModeSettings) => void;
   setIsLoadingMetrics: (loading: boolean) => void;
   setIsLoadingOptimizations: (loading: boolean) => void;
 }
@@ -57,6 +63,8 @@ export const useAppStore = create<AppStore>((set) => ({
   
   // Initial Settings
   settings: null,
+  focusModeStatus: null,
+  focusModeSettings: null,
   
   // Initial Loading States
   isLoadingMetrics: false,
@@ -86,6 +94,8 @@ export const useAppStore = create<AppStore>((set) => ({
   setStartupPrograms: (programs) => set({ startupPrograms: programs }),
   setOptimizations: (optimizations) => set({ optimizations }),
   setSettings: (settings) => set({ settings }),
+  setFocusModeStatus: (status) => set({ focusModeStatus: status }),
+  setFocusModeSettings: (settings) => set({ focusModeSettings: settings }),
   setIsLoadingMetrics: (loading) => set({ isLoadingMetrics: loading }),
   setIsLoadingOptimizations: (loading) => set({ isLoadingOptimizations: loading }),
 }));
