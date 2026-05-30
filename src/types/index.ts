@@ -357,4 +357,15 @@ export type FormatBytes = (bytes: number) => string;
 export type FormatDuration = (ms: number) => string;
 export type FormatPercent = (value: number) => string;
 
+// Focus Mode Types
+export interface FocusModeSettings {
+  whitelist: string[];
+  blacklist: string[];
+}
+
+export interface FocusModeStatus {
+  is_enabled: boolean;
+  paused_processes_count: number;
+}
+
 // Made with Bob

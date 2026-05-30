@@ -3,16 +3,19 @@ import { useAppStore } from './store';
 import tauriApi from './services/tauri';
 import { formatBytes, formatPercent } from './utils/format';
 import { AISuggestions } from './components/AISuggestions';
+import { FocusModeSettingsModal } from './components/FocusModeSettingsModal';
 
 function App() {
-  const { darkMode, toggleDarkMode, systemMetrics, setSystemMetrics } = useAppStore();
+  const { darkMode, toggleDarkMode, systemMetrics, setSystemMetrics, focusModeStatus, setFocusModeStatus, focusModeSettings, setFocusModeSettings } = useAppStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<'dashboard' | 'ai'>('dashboard');
+  const [isFocusModeSettingsOpen, setIsFocusModeSettingsOpen] = useState(false);
 
   useEffect(() => {
     // Fetch initial metrics
     fetchMetrics();
+    fetchFocusModeState();
 
     // Set up interval to fetch metrics every 5 seconds
     const interval = setInterval(fetchMetrics, 5000);
@@ -30,6 +33,40 @@ function App() {
       console.error('Failed to fetch metrics:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch metrics');
       setIsLoading(false);
+    }
+  };
+
+  const fetchFocusModeState = async () => {
+    try {
+      const [status, settings] = await Promise.all([
+        tauriApi.system.getFocusModeStatus(),
+        tauriApi.system.getFocusModeSettings(),
+      ]);
+      setFocusModeStatus(status);
+      setFocusModeSettings(settings);
+    } catch (err) {
+      console.error('Failed to fetch focus mode state:', err);
+    }
+  };
+
+  const handleToggleFocusMode = async () => {
+    if (!focusModeStatus) return;
+    try {
+      const newEnabledState = !focusModeStatus.is_enabled;
+      await tauriApi.system.toggleFocusMode(newEnabledState);
+      fetchFocusModeState();
+    } catch (err) {
+      console.error('Failed to toggle focus mode:', err);
+    }
+  };
+
+  const handleSaveFocusModeSettings = async (settings: any) => {
+    try {
+      await tauriApi.system.updateFocusModeSettings(settings);
+      fetchFocusModeState();
+      setIsFocusModeSettingsOpen(false);
+    } catch (err) {
+      console.error('Failed to save focus mode settings:', err);
     }
   };
 
@@ -116,11 +153,35 @@ function App() {
       <main className="container mx-auto px-6 py-8">
         {currentView === 'dashboard' ? (
           <>
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-2">System Metrics</h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Real-time monitoring of your system's performance
-              </p>
+            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">System Metrics</h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Real-time monitoring of your system's performance
+                </p>
+              </div>
+              <div className="mt-4 md:mt-0 flex items-center space-x-4">
+                <button
+                  onClick={handleToggleFocusMode}
+                  className={`px-6 py-3 rounded-full font-bold shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2 ${
+                    focusModeStatus?.is_enabled
+                      ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                  }`}
+                >
+                  <span className="text-xl">🎮</span>
+                  <span>
+                    {focusModeStatus?.is_enabled ? 'Focus Mode Active' : 'Enable Focus Mode'}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setIsFocusModeSettingsOpen(true)}
+                  className="p-3 bg-card border border-border rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shadow"
+                  title="Focus Mode Settings"
+                >
+                  ⚙️
+                </button>
+              </div>
             </div>
 
             {systemMetrics && (
@@ -195,6 +256,14 @@ function App() {
           <p>System Optimizer v1.0.0 - Built with Tauri + React</p>
         </div>
       </footer>
+
+      {isFocusModeSettingsOpen && focusModeSettings && (
+        <FocusModeSettingsModal
+          initialSettings={focusModeSettings}
+          onSave={handleSaveFocusModeSettings}
+          onClose={() => setIsFocusModeSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 }
