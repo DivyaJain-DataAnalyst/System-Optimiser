@@ -48,13 +48,29 @@ fn kill_process(
 // Placeholder commands for features to be implemented
 #[tauri::command]
 fn get_boot_time() -> Result<serde_json::Value, String> {
-    // TODO: Implement boot time analysis
+    use std::time::{SystemTime, UNIX_EPOCH};
+    use sysinfo::System;
+
+    // boot_time() returns the Unix timestamp (seconds) of the last system boot.
+    let boot_timestamp = System::boot_time();
+
+    let now_secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| format!("System clock error: {}", e))?
+        .as_secs();
+
+    // Uptime in milliseconds: time elapsed since the last boot.
+    let uptime_ms = now_secs.saturating_sub(boot_timestamp) * 1000;
+
     Ok(serde_json::json!({
-        "current_boot_time_ms": 45000,
-        "last_boot_timestamp": 0,
-        "average_boot_time_ms": 48000,
-        "best_boot_time_ms": 42000,
-        "worst_boot_time_ms": 55000,
+        "current_boot_time_ms": uptime_ms,
+        "last_boot_timestamp": boot_timestamp,
+        // average / best / worst require persisted history which is not yet
+        // implemented; initialise them to the current uptime so the UI receives
+        // real data rather than hardcoded constants.
+        "average_boot_time_ms": uptime_ms,
+        "best_boot_time_ms": uptime_ms,
+        "worst_boot_time_ms": uptime_ms,
         "boot_history": []
     }))
 }
