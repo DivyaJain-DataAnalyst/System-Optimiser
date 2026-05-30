@@ -4,18 +4,25 @@ import tauriApi from './services/tauri';
 import { formatBytes, formatPercent } from './utils/format';
 import { AISuggestions } from './components/AISuggestions';
 import { FocusModeSettingsModal } from './components/FocusModeSettingsModal';
+import { MaintenanceSettingsModal } from './components/MaintenanceSettingsModal';
 
 function App() {
-  const { darkMode, toggleDarkMode, systemMetrics, setSystemMetrics, focusModeStatus, setFocusModeStatus, focusModeSettings, setFocusModeSettings } = useAppStore();
+  const { 
+    darkMode, toggleDarkMode, systemMetrics, setSystemMetrics, 
+    focusModeStatus, setFocusModeStatus, focusModeSettings, setFocusModeSettings,
+    maintenanceConfig, setMaintenanceConfig, maintenanceLogs, setMaintenanceLogs
+  } = useAppStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<'dashboard' | 'ai'>('dashboard');
   const [isFocusModeSettingsOpen, setIsFocusModeSettingsOpen] = useState(false);
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
 
   useEffect(() => {
     // Fetch initial metrics
     fetchMetrics();
     fetchFocusModeState();
+    fetchMaintenanceState();
 
     // Set up interval to fetch metrics every 5 seconds
     const interval = setInterval(fetchMetrics, 5000);
@@ -49,6 +56,19 @@ function App() {
     }
   };
 
+  const fetchMaintenanceState = async () => {
+    try {
+      const [config, logs] = await Promise.all([
+        tauriApi.system.getMaintenanceConfig(),
+        tauriApi.system.getMaintenanceLogs(),
+      ]);
+      setMaintenanceConfig(config);
+      setMaintenanceLogs(logs);
+    } catch (err) {
+      console.error('Failed to fetch maintenance state:', err);
+    }
+  };
+
   const handleToggleFocusMode = async () => {
     if (!focusModeStatus) return;
     try {
@@ -67,6 +87,16 @@ function App() {
       setIsFocusModeSettingsOpen(false);
     } catch (err) {
       console.error('Failed to save focus mode settings:', err);
+    }
+  };
+
+  const handleSaveMaintenanceConfig = async (config: any) => {
+    try {
+      await tauriApi.system.updateMaintenanceConfig(config);
+      fetchMaintenanceState();
+      setIsMaintenanceModalOpen(false);
+    } catch (err) {
+      console.error('Failed to save maintenance config:', err);
     }
   };
 
@@ -238,10 +268,11 @@ function App() {
                 status="Coming Soon"
               />
               <FeatureCard
-                title="Disk Cleanup"
-                description="Free up disk space automatically"
+                title="Automated Maintenance"
+                description="Configure silent background tasks"
                 icon="🧹"
-                status="Coming Soon"
+                status={maintenanceConfig?.enabled ? "Active" : "Disabled"}
+                onClick={() => setIsMaintenanceModalOpen(true)}
               />
             </div>
           </>
@@ -262,6 +293,15 @@ function App() {
           initialSettings={focusModeSettings}
           onSave={handleSaveFocusModeSettings}
           onClose={() => setIsFocusModeSettingsOpen(false)}
+        />
+      )}
+
+      {isMaintenanceModalOpen && maintenanceConfig && (
+        <MaintenanceSettingsModal
+          initialConfig={maintenanceConfig}
+          logs={maintenanceLogs}
+          onSave={handleSaveMaintenanceConfig}
+          onClose={() => setIsMaintenanceModalOpen(false)}
         />
       )}
     </div>
@@ -308,18 +348,24 @@ interface FeatureCardProps {
   title: string;
   description: string;
   icon: string;
-  status: string;
+  status?: string;
+  onClick?: () => void;
 }
 
-function FeatureCard({ title, description, icon, status }: FeatureCardProps) {
+function FeatureCard({ title, description, icon, status, onClick }: FeatureCardProps) {
   return (
-    <div className="bg-card border border-border rounded-lg p-6 opacity-60">
+    <div 
+      className={`bg-card border border-border rounded-lg p-6 ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow hover:border-primary' : 'opacity-60'}`}
+      onClick={onClick}
+    >
       <div className="text-4xl mb-4">{icon}</div>
       <h3 className="font-semibold mb-2">{title}</h3>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{description}</p>
-      <span className="inline-block px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded-full text-xs font-medium">
-        {status}
-      </span>
+      {status && (
+        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-200 dark:bg-gray-700'}`}>
+          {status}
+        </span>
+      )}
     </div>
   );
 }

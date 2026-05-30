@@ -363,6 +363,23 @@ export interface FocusModeSettings {
   blacklist: string[];
 }
 
+export interface MaintenanceConfig {
+  enabled: boolean;
+  schedule: string;
+  clear_temp_files: boolean;
+  flush_dns: boolean;
+  trim_ssd: boolean;
+  empty_trash: boolean;
+}
+
+export interface MaintenanceLog {
+  id: string;
+  timestamp: number;
+  tasks_run: string[];
+  status: string;
+  details: string;
+}
+
 export interface FocusModeStatus {
   is_enabled: boolean;
   paused_processes_count: number;

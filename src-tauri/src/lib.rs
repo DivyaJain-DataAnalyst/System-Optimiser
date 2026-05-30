@@ -3,6 +3,7 @@ mod system;
 use std::sync::Mutex;
 use system::{MetricsCollector, BootOptimizer, AISuggestionsEngine};
 use tauri::State;
+use chrono::Timelike;
 
 // Global state for metrics collector and AI engines
 struct AppState {
@@ -10,6 +11,7 @@ struct AppState {
     boot_optimizer: Mutex<BootOptimizer>,
     ai_engine: Mutex<AISuggestionsEngine>,
     focus_mode_manager: Mutex<system::FocusModeManager>,
+    maintenance_scheduler: Mutex<system::MaintenanceScheduler>,
 }
 
 // System Metrics Commands
@@ -335,6 +337,29 @@ fn update_focus_mode_settings(state: State<AppState>, settings: system::FocusMod
     Ok("Settings updated successfully".to_string())
 }
 
+// Maintenance Commands
+#[tauri::command]
+fn get_maintenance_config(state: State<AppState>) -> Result<system::MaintenanceConfig, String> {
+    let scheduler = state.maintenance_scheduler.lock()
+        .map_err(|e| format!("Failed to lock maintenance scheduler: {}", e))?;
+    Ok(scheduler.get_config())
+}
+
+#[tauri::command]
+fn update_maintenance_config(state: State<AppState>, config: system::MaintenanceConfig) -> Result<String, String> {
+    let scheduler = state.maintenance_scheduler.lock()
+        .map_err(|e| format!("Failed to lock maintenance scheduler: {}", e))?;
+    scheduler.update_config(config);
+    Ok("Maintenance config updated successfully".to_string())
+}
+
+#[tauri::command]
+fn get_maintenance_logs(state: State<AppState>) -> Result<Vec<system::MaintenanceLog>, String> {
+    let scheduler = state.maintenance_scheduler.lock()
+        .map_err(|e| format!("Failed to lock maintenance scheduler: {}", e))?;
+    Ok(scheduler.get_logs())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -344,6 +369,42 @@ pub fn run() {
             boot_optimizer: Mutex::new(BootOptimizer::new()),
             ai_engine: Mutex::new(AISuggestionsEngine::new()),
             focus_mode_manager: Mutex::new(system::FocusModeManager::new()),
+            maintenance_scheduler: Mutex::new(system::MaintenanceScheduler::new()),
+        })
+        .setup(|app| {
+            let handle = app.handle().clone();
+            use tauri::Manager;
+            std::thread::spawn(move || {
+                loop {
+                    std::thread::sleep(std::time::Duration::from_secs(60));
+                    let state = handle.state::<AppState>();
+                    
+                    let run_now = {
+                        let config = state.maintenance_scheduler.lock().unwrap().get_config();
+                        if !config.enabled {
+                            false
+                        } else if config.schedule == "idle" {
+                            system::get_idle_time_seconds() > 900 // 15 mins
+                        } else if config.schedule == "daily" {
+                            let now = chrono::Local::now();
+                            now.hour() == 2 && now.minute() == 0 // 2:00 AM
+                        } else if config.schedule == "weekly" {
+                            let now = chrono::Local::now();
+                            use chrono::Datelike;
+                            now.weekday() == chrono::Weekday::Sun && now.hour() == 2 && now.minute() == 0 // Sun 2:00 AM
+                        } else {
+                            false
+                        }
+                    };
+
+                    if run_now {
+                        state.maintenance_scheduler.lock().unwrap().execute_maintenance();
+                        // Sleep extra to prevent multiple runs in the same idle period or minute
+                        std::thread::sleep(std::time::Duration::from_secs(3600)); 
+                    }
+                }
+            });
+            Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             get_system_metrics,
@@ -372,6 +433,9 @@ pub fn run() {
             get_focus_mode_status,
             get_focus_mode_settings,
             update_focus_mode_settings,
+            get_maintenance_config,
+            update_maintenance_config,
+            get_maintenance_logs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

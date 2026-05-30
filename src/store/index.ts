@@ -8,6 +8,8 @@ import type {
   BootTimeInfo,
   FocusModeSettings,
   FocusModeStatus,
+  MaintenanceConfig,
+  MaintenanceLog,
 } from '../types';
 
 interface AppStore {
@@ -27,6 +29,8 @@ interface AppStore {
   settings: Settings | null;
   focusModeStatus: FocusModeStatus | null;
   focusModeSettings: FocusModeSettings | null;
+  maintenanceConfig: MaintenanceConfig | null;
+  maintenanceLogs: MaintenanceLog[];
   
   // Loading States
   isLoadingMetrics: boolean;
@@ -44,6 +48,8 @@ interface AppStore {
   setSettings: (settings: Settings) => void;
   setFocusModeStatus: (status: FocusModeStatus) => void;
   setFocusModeSettings: (settings: FocusModeSettings) => void;
+  setMaintenanceConfig: (config: MaintenanceConfig) => void;
+  setMaintenanceLogs: (logs: MaintenanceLog[]) => void;
   setIsLoadingMetrics: (loading: boolean) => void;
   setIsLoadingOptimizations: (loading: boolean) => void;
 }
@@ -65,6 +71,8 @@ export const useAppStore = create<AppStore>((set) => ({
   settings: null,
   focusModeStatus: null,
   focusModeSettings: null,
+  maintenanceConfig: null,
+  maintenanceLogs: [],
   
   // Initial Loading States
   isLoadingMetrics: false,
@@ -96,6 +104,8 @@ export const useAppStore = create<AppStore>((set) => ({
   setSettings: (settings) => set({ settings }),
   setFocusModeStatus: (status) => set({ focusModeStatus: status }),
   setFocusModeSettings: (settings) => set({ focusModeSettings: settings }),
+  setMaintenanceConfig: (config) => set({ maintenanceConfig: config }),
+  setMaintenanceLogs: (logs) => set({ maintenanceLogs: logs }),
   setIsLoadingMetrics: (loading) => set({ isLoadingMetrics: loading }),
   setIsLoadingOptimizations: (loading) => set({ isLoadingOptimizations: loading }),
 }));
