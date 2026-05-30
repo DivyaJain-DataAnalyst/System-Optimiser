@@ -168,15 +168,119 @@ fn rollback_optimization(
 }
 
 #[tauri::command]
-fn clean_temp_files(categories: Vec<String>, dry_run: Option<bool>) -> Result<serde_json::Value, String> {
-    // TODO: Implement temp file cleaning
-    let _ = (categories, dry_run);
+fn clean_temp_files(
+    categories: Vec<String>,
+    dry_run: Option<bool>,
+) -> Result<serde_json::Value, String> {
+    let is_dry_run = dry_run.unwrap_or(false);
+
+    // Resolve candidate directories from the requested categories.
+    // When categories is empty, fall back to the system temp directory.
+    let mut dirs: Vec<std::path::PathBuf> = Vec::new();
+
+    let add_temp = categories.is_empty() || categories.iter().any(|c| c == "temp" || c == "system");
+    let add_cache = categories.iter().any(|c| c == "cache" || c == "user");
+
+    if add_temp {
+        dirs.push(std::env::temp_dir());
+    }
+
+    if add_cache {
+        // Platform-specific user cache locations.
+        #[cfg(target_os = "macos")]
+        if let Some(home) = dirs_next_home() {
+            dirs.push(home.join("Library").join("Caches"));
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            if let Ok(xdg) = std::env::var("XDG_CACHE_HOME") {
+                dirs.push(std::path::PathBuf::from(xdg));
+            } else if let Some(home) = dirs_next_home() {
+                dirs.push(home.join(".cache"));
+            }
+            dirs.push(std::path::PathBuf::from("/var/tmp"));
+        }
+
+        #[cfg(target_os = "windows")]
+        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+            dirs.push(std::path::PathBuf::from(local_app_data).join("Temp"));
+        }
+    }
+
+    // De-duplicate and remove non-existent paths.
+    dirs.sort();
+    dirs.dedup();
+
+    let mut files_removed: u64 = 0;
+    let mut space_freed_bytes: u64 = 0;
+    let mut errors: Vec<String> = Vec::new();
+
+    for dir in &dirs {
+        let read_dir = match std::fs::read_dir(dir) {
+            Ok(rd) => rd,
+            Err(e) => {
+                errors.push(format!("{}: {}", dir.display(), e));
+                continue;
+            }
+        };
+
+        for entry in read_dir.flatten() {
+            let path = entry.path();
+            // Only remove regular files; leave sub-directories intact to avoid
+            // recursively deleting directories that may contain important data.
+            let metadata = match path.metadata() {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
+            if !metadata.is_file() {
+                continue;
+            }
+
+            let file_size = metadata.len();
+
+            if is_dry_run {
+                // Preview only: count without deleting.
+                files_removed += 1;
+                space_freed_bytes += file_size;
+            } else {
+                match std::fs::remove_file(&path) {
+                    Ok(()) => {
+                        files_removed += 1;
+                        space_freed_bytes += file_size;
+                    }
+                    Err(e) => {
+                        errors.push(format!("{}: {}", path.display(), e));
+                    }
+                }
+            }
+        }
+    }
+
     Ok(serde_json::json!({
         "success": true,
-        "space_freed_bytes": 0,
-        "files_removed": 0,
-        "errors": []
+        "dry_run": is_dry_run,
+        "space_freed_bytes": space_freed_bytes,
+        "files_removed": files_removed,
+        "errors": errors
     }))
+}
+
+// Returns the current user's home directory, used by clean_temp_files to
+// locate platform-specific cache paths.
+fn dirs_next_home() -> Option<std::path::PathBuf> {
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    {
+        std::env::var("HOME").ok().map(std::path::PathBuf::from)
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::env::var("USERPROFILE").ok().map(std::path::PathBuf::from)
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+    {
+        None
+    }
 }
 
 #[tauri::command]
