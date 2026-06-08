@@ -240,121 +240,122 @@ impl AISuggestionsEngine {
     pub fn generate_insights(&self, cpu_usage: f64, memory_usage: f64, disk_usage: f64) -> Vec<AIInsight> {
         let mut insights = Vec::new();
 
-        // AI-powered performance analysis
+        // Performance analysis based on measured metrics
         if cpu_usage < 30.0 && memory_usage < 50.0 {
             insights.push(AIInsight {
                 insight_type: "success".to_string(),
-                message: "🎯 AI Analysis: Your system is running optimally!".to_string(),
+                message: "✅ System performing well".to_string(),
                 details: Some(format!(
-                    "Machine learning models indicate excellent performance. CPU at {:.1}%, Memory at {:.1}%. Your system is in the top 15% of optimized computers.",
+                    "Your system is running smoothly. CPU at {:.1}%, Memory at {:.1}%. No immediate optimization needed.",
                     cpu_usage, memory_usage
                 )),
                 action: None,
-                confidence: 0.95,
+                confidence: 1.0,
             });
         } else if cpu_usage > 70.0 || memory_usage > 70.0 {
             insights.push(AIInsight {
                 insight_type: "info".to_string(),
-                message: "🤖 AI Detected: Moderate resource usage".to_string(),
+                message: "📊 Moderate resource usage detected".to_string(),
                 details: Some(format!(
-                    "Neural network analysis shows CPU at {:.1}% and Memory at {:.1}%. AI predicts this is normal for your usage pattern, but optimization could improve responsiveness by 15-20%.",
+                    "Current CPU at {:.1}% and Memory at {:.1}%. Consider checking running processes to identify resource-heavy applications.",
                     cpu_usage, memory_usage
                 )),
                 action: Some(InsightAction {
-                    label: "Get AI optimization suggestions".to_string(),
+                    label: "View running processes".to_string(),
                     command: "view_processes".to_string(),
                 }),
-                confidence: 0.87,
+                confidence: 1.0,
             });
         }
 
-        // Critical memory warning with AI prediction
+        // Critical memory warning
         if memory_usage > 85.0 {
             insights.push(AIInsight {
                 insight_type: "warning".to_string(),
-                message: "⚠️ AI Alert: Memory usage critically high".to_string(),
+                message: "⚠️ Memory usage critically high".to_string(),
                 details: Some(format!(
-                    "Deep learning models predict system slowdown within 5-10 minutes at {:.1}% memory usage. AI recommends immediate action to prevent crashes or data loss.",
+                    "Memory usage is at {:.1}%. This can cause system slowdowns. Consider closing applications or clearing memory to improve performance.",
                     memory_usage
                 )),
                 action: Some(InsightAction {
-                    label: "AI-guided memory cleanup".to_string(),
+                    label: "View memory usage".to_string(),
                     command: "view_processes".to_string(),
                 }),
-                confidence: 0.93,
+                confidence: 1.0,
             });
         }
 
-        // AI-powered predictive insight
+        // Elevated resource usage warning
         if cpu_usage > 50.0 && memory_usage > 60.0 {
             insights.push(AIInsight {
                 insight_type: "tip".to_string(),
-                message: "💡 AI Prediction: Performance degradation likely".to_string(),
+                message: "💡 High resource usage detected".to_string(),
                 details: Some(format!(
-                    "Predictive AI models analyzed your usage patterns and forecast a 30% performance drop in the next 2 hours if current trends continue. CPU: {:.1}%, Memory: {:.1}%.",
+                    "Your system is using significant resources. CPU: {:.1}%, Memory: {:.1}%. Monitor running processes to optimize performance.",
                     cpu_usage, memory_usage
                 )),
                 action: Some(InsightAction {
-                    label: "Apply AI recommendations".to_string(),
+                    label: "Check running processes".to_string(),
                     command: "view_processes".to_string(),
                 }),
-                confidence: 0.82,
+                confidence: 1.0,
             });
         }
 
-        // Smart maintenance recommendation
+        // Maintenance recommendation
         insights.push(AIInsight {
             insight_type: "tip".to_string(),
-            message: "🧠 AI Insight: Proactive maintenance recommended".to_string(),
+            message: "🔧 Regular maintenance recommended".to_string(),
             details: Some(format!(
-                "Machine learning analysis of 10,000+ similar systems shows that weekly restarts reduce crashes by 73% and improve speed by 18%. Your system profile suggests optimal restart time: Sunday 2 AM. Current metrics: CPU {:.1}%, Memory {:.1}%, Disk {:.1}%.",
+                "Periodic system maintenance and restarts help maintain stable performance. Schedule maintenance during low-usage periods. Current system metrics: CPU {:.1}%, Memory {:.1}%, Disk {:.1}%.",
                 cpu_usage, memory_usage, disk_usage
             )),
             action: None,
-            confidence: 0.88,
+            confidence: 1.0,
         });
 
-        // Critical storage warning with AI analysis
+        // Critical storage warning
         if disk_usage > 90.0 {
             insights.push(AIInsight {
                 insight_type: "warning".to_string(),
-                message: "🚨 AI Critical Alert: Disk space emergency".to_string(),
+                message: "🚨 Disk space critical".to_string(),
                 details: Some(format!(
-                    "Advanced AI analysis detected {:.1}% disk usage. Neural networks predict system instability within 24 hours. AI identified 12.5GB of safe-to-delete files including duplicates, temp files, and old logs.",
+                    "Disk usage is at {:.1}%. Free up space by removing temporary files, old downloads, and duplicates to maintain system stability.",
                     disk_usage
                 )),
                 action: Some(InsightAction {
-                    label: "AI-powered disk cleanup".to_string(),
+                    label: "Clean disk".to_string(),
                     command: "clean_disk".to_string(),
                 }),
-                confidence: 0.97,
+                confidence: 1.0,
             });
         } else if disk_usage > 75.0 {
             insights.push(AIInsight {
                 insight_type: "info".to_string(),
-                message: "📊 AI Analysis: Disk space trending toward full".to_string(),
+                message: "📊 Disk space trending toward full".to_string(),
                 details: Some(format!(
-                    "Predictive models show disk usage at {:.1}% with a growth rate of 2.3GB/week. AI forecasts you'll reach 95% capacity in 3 weeks. Proactive cleanup recommended now.",
+                    "Disk usage is at {:.1}%. Consider cleaning up files to maintain performance and ensure adequate space for system operations.",
                     disk_usage
                 )),
                 action: Some(InsightAction {
-                    label: "View AI cleanup suggestions".to_string(),
+                    label: "View cleanup options".to_string(),
                     command: "clean_disk".to_string(),
                 }),
-                confidence: 0.85,
+                confidence: 1.0,
             });
         }
 
-        // AI learning insight
+        // System status summary
         if insights.len() < 3 {
             insights.push(AIInsight {
                 insight_type: "success".to_string(),
-                message: "✨ AI Learning: System health excellent".to_string(),
-                details: Some(format!(
-                    "Continuous AI monitoring shows your system is performing exceptionally well. Machine learning models have learned your usage patterns and will provide personalized optimization suggestions. Current health score: 94/100.",
-                )),
+                message: "✨ System status healthy".to_string(),
+                details: Some(
+                    "Your system is operating normally with no critical issues detected. Regular maintenance and monitoring help maintain optimal performance."
+                        .to_string(),
+                ),
                 action: None,
-                confidence: 0.91,
+                confidence: 1.0,
             });
         }
 
