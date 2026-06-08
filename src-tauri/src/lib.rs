@@ -146,41 +146,24 @@ fn get_boot_time() -> Result<serde_json::Value, String> {
 
 #[tauri::command]
 fn get_startup_programs() -> Result<Vec<serde_json::Value>, String> {
-    // TODO: Implement startup program detection
-    Ok(vec![])
+    Err("Startup program detection is not yet implemented. This feature will be available in a future release.".to_string())
 }
 
 #[tauri::command]
 fn toggle_startup_program(program_id: String, enabled: bool) -> Result<serde_json::Value, String> {
-    // TODO: Implement startup program toggle
-    Ok(serde_json::json!({
-        "success": true,
-        "message": format!("Startup program {} {}", program_id, if enabled { "enabled" } else { "disabled" })
-    }))
+    let _ = (program_id, enabled);
+    Err("Startup program toggling is not yet implemented. This feature requires platform-specific registry/config modifications and will be available in a future release.".to_string())
 }
 
 #[tauri::command]
 fn analyze_system(include_deep_scan: Option<bool>) -> Result<serde_json::Value, String> {
-    // TODO: Implement system analysis
     let _ = include_deep_scan;
-    Ok(serde_json::json!({
-        "overall_score": 85,
-        "issues_found": 3,
-        "optimizations_available": 5,
-        "categories": {
-            "startup": { "score": 75, "issues": 2 },
-            "disk": { "score": 90, "issues": 1 },
-            "memory": { "score": 85, "issues": 0 },
-            "services": { "score": 95, "issues": 0 }
-        },
-        "timestamp": 0
-    }))
+    Err("Comprehensive system analysis is not yet implemented. Use get_system_metrics() and analyze_boot_speed() for current system information.".to_string())
 }
 
 #[tauri::command]
 fn get_optimization_suggestions() -> Result<Vec<serde_json::Value>, String> {
-    // TODO: Implement optimization suggestions
-    Ok(vec![])
+    Err("Optimization suggestions are now provided by get_ai_recommendations(). Call that endpoint instead to get intelligent suggestions based on your system's current state.".to_string())
 }
 
 #[tauri::command]
