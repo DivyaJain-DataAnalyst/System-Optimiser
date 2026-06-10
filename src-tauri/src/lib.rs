@@ -45,6 +45,76 @@ fn enforce_rate_limit(
 // traversal sequences or command fragments) from reaching downstream handlers.
 const VALID_OPTIMIZATION_IDS: &[&str] = &["opt_1", "opt_2", "opt_3", "opt_4"];
 
+// Protected system processes that cannot be killed. Terminating these processes
+// would cause immediate system instability, data loss, or complete system failure.
+// This blocklist is cross-platform and covers critical Windows, Linux, and macOS
+// system processes that users should never terminate through this application.
+const PROTECTED_PROCESSES: &[&str] = &[
+    // Windows critical processes
+    "svchost.exe",           // Windows service host (hundreds of system services)
+    "csrss.exe",             // Client/Server Runtime Subsystem (essential subsystem)
+    "lsass.exe",             // Local Security Authority (authentication and access control)
+    "smss.exe",              // Session Manager Subsystem (session management)
+    "wininit.exe",           // Windows initialization process
+    "winlogon.exe",          // Windows logon process (pre-Vista)
+    "ntoskrnl.exe",          // Windows kernel itself (runs as process on some systems)
+    "dwm.exe",               // Desktop Window Manager (UI rendering)
+    "explorer.exe",          // Windows shell and file manager (critical UI)
+    "services.exe",          // Service Control Manager (starts/stops system services)
+    "system",                // Windows system process (special kernel process)
+    "system32\\conhost.exe", // Console window host
+    "SearchIndexer.exe",     // Windows Search indexer (system-critical)
+    "TrustedInstaller.exe",  // Windows service installer (critical system files)
+
+    // Linux critical processes
+    "systemd",               // System daemon (init system, critical for boot)
+    "init",                  // Traditional init process (older Linux systems)
+    "kthreadd",              // Kernel thread daemon (creates kernel threads)
+    "ksoftirqd",             // Kernel softirq daemon (interrupt handling)
+    "kworker",               // Generic kernel worker threads
+    "events",                // Event queue handler
+    "kswapd",                // Memory swap daemon (swapping memory to disk)
+    "dbus-daemon",           // Message bus daemon (inter-process communication)
+    "systemd-journald",      // Journal logging daemon
+    "kernel",                // Linux kernel process
+    "kdevtmpfs",             // Device tmpfs daemon
+
+    // macOS critical processes
+    "kernel_task",           // macOS kernel (analogous to Windows ntoskrnl)
+    "launchd",               // macOS init system (starts system services)
+    "loginwindow",           // macOS login window (critical for user interaction)
+    "Finder",                // macOS file manager and desktop (critical UI)
+    "WindowServer",          // macOS window/graphics server (UI rendering)
+    "Spotlight",             // macOS search indexer (system metadata)
+    "mds",                   // Metadata server (Spotlight metadata daemon)
+    "configd",               // System configuration daemon (network settings)
+    "syslogd",               // System logging daemon
+
+    // Cross-platform process protection
+    "System",                // Generic system process name
+    "Idle",                  // Idle process (not actually killable)
+];
+
+// Check if a process name is in the protected processes list.
+fn is_protected_process(process_name: &str) -> bool {
+    let name_lower = process_name.to_lowercase();
+
+    // Direct name matches (exact or case-insensitive)
+    for protected in PROTECTED_PROCESSES {
+        if name_lower.contains(&protected.to_lowercase()) {
+            return true;
+        }
+    }
+
+    // Additional heuristic: processes running as SYSTEM or NT AUTHORITY\SYSTEM
+    // are typically critical and should not be terminated
+    if process_name.contains("SYSTEM") || process_name.contains("system") {
+        return true;
+    }
+
+    false
+}
+
 // Maximum accepted length for an optimization ID. Known IDs are short, so a
 // tight bound rejects oversized input before any further checks run.
 const MAX_OPTIMIZATION_ID_LEN: usize = 64;
@@ -101,17 +171,111 @@ fn get_process_list(
 }
 
 #[tauri::command]
+fn get_process_info(
+    state: State<AppState>,
+    pid: u32,
+) -> Result<serde_json::Value, String> {
+    // Retrieve detailed information about a specific process by PID.
+    // Used to validate if a process is critical before allowing termination.
+
+    let mut collector = state.metrics_collector.lock()
+        .map_err(|e| format!("Failed to lock metrics collector: {}", e))?;
+
+    // Get the full process list and find the matching PID
+    let processes = collector.get_process_list(None, None);
+
+    for process in processes {
+        if process.pid == pid {
+            let is_protected = is_protected_process(&process.name);
+            return Ok(serde_json::json!({
+                "pid": process.pid,
+                "name": process.name,
+                "cpu_percent": process.cpu_percent,
+                "memory_bytes": process.memory_bytes,
+                "disk_read_bytes": process.disk_read_bytes,
+                "disk_write_bytes": process.disk_write_bytes,
+                "status": process.status,
+                "start_time": process.start_time,
+                "is_protected": is_protected,
+                "protection_reason": if is_protected {
+                    Some("This is a critical system process. Terminating it may cause system instability or failure.")
+                } else {
+                    None
+                }
+            }));
+        }
+    }
+
+    Err(format!("Process with PID {} not found", pid))
+}
+
+#[tauri::command]
 fn kill_process(
     state: State<AppState>,
     pid: u32,
     force: Option<bool>,
-) -> Result<String, String> {
+) -> Result<serde_json::Value, String> {
+    // Kill a process by PID with safety validation.
+    // Rejects attempts to terminate critical system processes that would cause
+    // system instability or data loss.
+
     enforce_rate_limit(&state, "kill_process", KILL_PROCESS_LIMIT)?;
 
     let mut collector = state.metrics_collector.lock()
         .map_err(|e| format!("Failed to lock metrics collector: {}", e))?;
-    collector.kill_process(pid, force.unwrap_or(false))?;
-    Ok("Process terminated successfully".to_string())
+
+    // Get process list to validate the process exists and check if it's protected
+    let processes = collector.get_process_list(None, None);
+
+    let mut target_process = None;
+    for process in processes {
+        if process.pid == pid {
+            target_process = Some(process);
+            break;
+        }
+    }
+
+    let process = target_process
+        .ok_or_else(|| format!("Process with PID {} not found", pid))?;
+
+    // Reject attempts to kill protected system processes
+    if is_protected_process(&process.name) {
+        return Err(serde_json::json!({
+            "success": false,
+            "error": format!("Cannot terminate process '{}': this is a critical system process", process.name),
+            "reason": "Terminating this process would cause system instability or failure",
+            "protected": true,
+            "process_name": process.name,
+            "pid": pid
+        }).to_string());
+    }
+
+    // Warn about terminating system-owned processes (even if not on the explicit blocklist)
+    let force = force.unwrap_or(false);
+    if process.status.to_lowercase().contains("system") ||
+       process.status.to_lowercase().contains("root") {
+        if !force {
+            return Err(serde_json::json!({
+                "success": false,
+                "error": format!("Process '{}' is system-owned. Set force=true to terminate anyway", process.name),
+                "reason": "This process is owned by system/root. Terminating it may affect system stability",
+                "requires_force": true,
+                "process_name": process.name,
+                "process_status": process.status.clone(),
+                "pid": pid
+            }).to_string());
+        }
+    }
+
+    // Safely terminate the process
+    collector.kill_process(pid, force)?;
+
+    Ok(serde_json::json!({
+        "success": true,
+        "message": format!("Process {} ('{}') terminated successfully", pid, process.name),
+        "process_name": process.name,
+        "pid": pid
+    }))
 }
 
 // Placeholder commands for features to be implemented
