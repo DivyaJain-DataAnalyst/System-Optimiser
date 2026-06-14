@@ -25,6 +25,17 @@
 
 ## ✨ Features
 
+- **🔒 Security & Reliability**
+- Safe Optimizations: All changes are validated before applying
+- Rollback Protection: Automatic backups ensure you can revert safely
+- Privacy First: No sensitive data leaves your device unless you opt‑in to cloud AI
+- Crash Recovery: Built‑in safeguards to restore system state if something goes wrong
+
+- **🧩 Extensibility**
+- Plugin System: Add custom optimization modules
+- API Access: Integrate with external monitoring tools
+- Configurable Rules: Tailor optimization strategies to your workflow
+
 ### 🎯 Core Capabilities
 - **Real-time System Monitoring**: Track CPU, memory, disk, and network usage with live updates
 - **Boot Time Analysis**: Measure and optimize system startup performance
