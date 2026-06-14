@@ -101,7 +101,7 @@ This Code of Conduct applies to:
 
 Whether you are **contributing code, writing documentation, attending discussions, or representing System-Optimiser**, you are expected to follow this Code of Conduct.  
 
-Examples: official email, social media accounts or events.  
+Examples: official email, LinkedIn or events.  
 
 <p align="center">
   <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExaTU4b3d5cXFndndqem14Ym1uOG95cXUxbWpvcTdzMDN3YjR1ZnRqayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/H03PuVdwREB21ANkLX/giphy.gif" width="350" alt="Scope GIF">
