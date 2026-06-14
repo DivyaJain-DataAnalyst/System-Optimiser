@@ -68,8 +68,18 @@ impl FocusModeManager {
     }
 
     pub fn toggle(&mut self, enable: bool) -> Result<String, String> {
+        // ✅ OS support check
+        // Only allow Focus Mode on Windows for now
+        #[cfg(not(target_os = "windows"))]
+        {
+            return Err("Focus Mode is not supported on this operating system".to_string());
+        }
+
         if self.is_enabled == enable {
-            return Ok(format!("Focus mode is already {}", if enable { "enabled" } else { "disabled" }));
+            return Ok(format!(
+                "Focus mode is already {}",
+                if enable { "enabled" } else { "disabled" }
+            ));
         }
 
         let mut sys = System::new_all();
@@ -83,8 +93,16 @@ impl FocusModeManager {
                 let name = process.name().to_string().to_lowercase();
 
                 // Check if process matches any blacklist entry
-                let is_blacklisted = self.settings.blacklist.iter().any(|b| name.eq_ignore_ascii_case(b));
-                let is_whitelisted = self.settings.whitelist.iter().any(|w| name.eq_ignore_ascii_case(w));
+                let is_blacklisted = self
+                    .settings
+                    .blacklist
+                    .iter()
+                    .any(|b| name.eq_ignore_ascii_case(b));
+                let is_whitelisted = self
+                    .settings
+                    .whitelist
+                    .iter()
+                    .any(|w| name.eq_ignore_ascii_case(w));
 
                 if is_blacklisted && !is_whitelisted {
                     // Try to pause the process using platform-specific method
@@ -97,12 +115,13 @@ impl FocusModeManager {
             }
 
             self.is_enabled = true;
-            Ok(format!("Focus mode enabled. Paused {} background processes.", paused_count))
+            Ok(format!(
+                "Focus mode enabled. Paused {} background processes.",
+                paused_count
+            ))
         } else {
             // Disable Focus Mode: Resume all paused processes
             let mut resumed_count = 0;
-            let mut failed_count = 0;
-            let mut stale_pids = Vec::new();
 
             for pid in &self.paused_pids {
                 if sys.process(*pid).is_some() {
@@ -118,30 +137,14 @@ impl FocusModeManager {
                         stale_pids.push(*pid);
                    }
             }
+
             self.paused_pids.clear();
 
             self.is_enabled = false;
-
             Ok(format!(
-                "Focus mode disabled. Successfully resumed: {} processes. Failed to resume: {} processes.",
-                resumed_count,
-                failed_count
+                "Focus mode disabled. Resumed {} background processes.",
+                resumed_count
             ))
-        }
-    }
-}
-
-/// Platform-specific process pause implementation
-#[cfg(target_os = "windows")]
-fn pause_process(pid: Pid) -> bool {
-    use windows::Win32::System::Threading::PROCESS_SET_INFORMATION;
-
-    unsafe {
-        // OpenProcess requires PROCESS_SET_INFORMATION access to change priority
-        let handle = OpenProcess(PROCESS_SET_INFORMATION, false, pid.as_u32());
-
-        if handle == INVALID_HANDLE_VALUE {
-            return false;
         }
 
         let result = SetPriorityClass(handle, BELOW_NORMAL_PRIORITY_CLASS).is_ok();
