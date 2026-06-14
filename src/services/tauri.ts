@@ -29,6 +29,10 @@ import type {
   FocusModeSettings,
   FocusModeStatus,
   BatteryStatus,
+  DeepSleepStatus,
+  HardwareHealthData,
+  DiskHealthInfo,
+  BatteryHealthInfo,
 } from '../types';
 
 /**
@@ -281,6 +285,54 @@ export const events = {
   },
 };
 
+
+/**
+ * Deep Sleep App Freezer API
+ */
+export const deepSleepApi = {
+  async getStatus(): Promise<DeepSleepStatus> {
+    return invoke<DeepSleepStatus>('get_deep_sleep_status');
+  },
+
+  async updateConfig(enabled: boolean, timeoutSecs: number, whitelist: string[]): Promise<DeepSleepStatus> {
+    return invoke<DeepSleepStatus>('update_deep_sleep_config', { enabled, timeoutSecs, whitelist });
+  },
+
+  async thawProcess(pid: number): Promise<DeepSleepStatus> {
+    return invoke<DeepSleepStatus>('thaw_process', { pid });
+  },
+
+  async freezeProcess(pid: number, name: string, memoryBytes: number): Promise<DeepSleepStatus> {
+    return invoke<DeepSleepStatus>('freeze_process', { pid, name, memoryBytes });
+  },
+};
+
+/**
+ * Hardware Health API
+ */
+export const hardwareHealthApi = {
+  /**
+   * Get full hardware health data (disks + battery + alerts)
+   */
+  async getHardwareHealth(): Promise<HardwareHealthData> {
+    return invoke<HardwareHealthData>('get_hardware_health');
+  },
+
+  /**
+   * Get disk health data only
+   */
+  async getDiskHealth(): Promise<DiskHealthInfo[]> {
+    return invoke<DiskHealthInfo[]>('get_disk_health');
+  },
+
+  /**
+   * Get battery health data only
+   */
+  async getBatteryHealth(): Promise<BatteryHealthInfo | null> {
+    return invoke<BatteryHealthInfo | null>('get_battery_health');
+  },
+};
+
 /**
  * Battery API
  */
@@ -307,6 +359,8 @@ export const tauriApi = {
   settings: settingsApi,
   performance: performanceApi,
   battery: batteryApi,
+  deepSleep: deepSleepApi,
+  hardwareHealth: hardwareHealthApi,
   events,
 };
 

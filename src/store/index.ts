@@ -11,6 +11,8 @@ import type {
   MaintenanceConfig,
   MaintenanceLog,
   BatteryStatus,
+  DeepSleepStatus,
+  HardwareHealthData,
 } from '../types';
 
 interface AppStore {
@@ -33,6 +35,8 @@ interface AppStore {
   maintenanceConfig: MaintenanceConfig | null;
   maintenanceLogs: MaintenanceLog[];
   batteryStatus: BatteryStatus | null;
+  hardwareHealth: HardwareHealthData | null;
+  isLoadingHardwareHealth: boolean;
   
   // Loading States
   isLoadingMetrics: boolean;
@@ -53,8 +57,14 @@ interface AppStore {
   setMaintenanceConfig: (config: MaintenanceConfig) => void;
   setMaintenanceLogs: (logs: MaintenanceLog[]) => void;
   setBatteryStatus: (status: BatteryStatus) => void;
+  setHardwareHealth: (data: HardwareHealthData) => void;
+  setIsLoadingHardwareHealth: (loading: boolean) => void;
   setIsLoadingMetrics: (loading: boolean) => void;
   setIsLoadingOptimizations: (loading: boolean) => void;
+  
+  // Deep Sleep
+  deepSleepStatus: DeepSleepStatus | null;
+  setDeepSleepStatus: (status: DeepSleepStatus | null) => void;
 }
 
 export const useAppStore = create<AppStore>((set) => ({
@@ -77,10 +87,14 @@ export const useAppStore = create<AppStore>((set) => ({
   maintenanceConfig: null,
   maintenanceLogs: [],
   batteryStatus: null,
-
+  hardwareHealth: null,
+  isLoadingHardwareHealth: false,
   // Initial Loading States
   isLoadingMetrics: false,
   isLoadingOptimizations: false,
+  
+  // Initial Deep Sleep State
+  deepSleepStatus: null,
   
   // Actions
   setCurrentView: (view) => set({ currentView: view }),
@@ -111,8 +125,11 @@ export const useAppStore = create<AppStore>((set) => ({
   setMaintenanceConfig: (config) => set({ maintenanceConfig: config }),
   setMaintenanceLogs: (logs) => set({ maintenanceLogs: logs }),
   setBatteryStatus: (status) => set({ batteryStatus: status }),
+  setHardwareHealth: (data) => set({ hardwareHealth: data }),
+  setIsLoadingHardwareHealth: (loading) => set({ isLoadingHardwareHealth: loading }),
   setIsLoadingMetrics: (loading) => set({ isLoadingMetrics: loading }),
   setIsLoadingOptimizations: (loading) => set({ isLoadingOptimizations: loading }),
+  setDeepSleepStatus: (status) => set({ deepSleepStatus: status }),
 }));
 
 // Initialize dark mode on app start
