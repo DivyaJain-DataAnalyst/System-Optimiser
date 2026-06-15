@@ -108,23 +108,6 @@ git push origin feature/your-feature-name
 
 ![Line](https://user-images.githubusercontent.com/85225156/171937799-8fc9e255-9889-4642-9c92-6df85fb86e82.gif)
 
-## 📂 Project Structure
-
-`
-System-Optimiser/
-├──.vscode/
-├──docs/
-├──public/
-├──src-tauri
-├── public/
-├── assets/
-├── components/
-├── docs/
-├──src/
-`
-
-![Line](https://user-images.githubusercontent.com/85225156/171937799-8fc9e255-9889-4642-9c92-6df85fb86e82.gif)
-
 ## ✅ PR Review Process
 
 We aim to keep things smooth and transparent:
